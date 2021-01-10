@@ -32,6 +32,7 @@ public:
         }
     }
     
+    std::shared_ptr<Camera> currentCam;
     std::string output;
     std::vector<std::shared_ptr<Node3d>> objects;
     std::vector<std::shared_ptr<Node3d>> lights;

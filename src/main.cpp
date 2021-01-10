@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     SceneWalker walker(fac, scene);
 
     pugi::xml_document doc;
-    pugi::xml_parse_result result = doc.load_file("../scenes/example2.xml");
+    pugi::xml_parse_result result = doc.load_file(argv[1]);
     if (!result)
     {
         std::cerr << "Could not load file" << std::endl;
@@ -25,21 +25,8 @@ int main(int argc, char *argv[])
     }
     doc.traverse(walker);
 
-    Camera cam("MyCam", Vector3(0, 0, 1), Vector3(0, 0, -1), Vector3(0, 1, 0), 45,
-               Vector2(512, 512), 8);
-    Scene s;
-    Material mat;
-    Sphere sp("sp", Vector3(3, 2, -3), 1, mat);
-    s.objects.push_back(std::make_shared<Sphere>(sp));
-    Sphere sp1("sp1", Vector3(0, 0, -10), 3, mat);
-    s.objects.push_back(std::make_shared<Sphere>(sp1));
+    Renderer rend(*scene.currentCam.get(), scene);
+    rend.currentFileName = doc.child("scene").attribute("output_file").as_string();
 
-    Renderer rend(cam, scene);
-
-    /*RayCast ray("", Vector3(0,0,0), Vector3(0,0,-1));
-    ray.getCollider(s);
-
-    std::cout << ray.isColliding() << std::endl;*/
-    
     rend.render();
 }

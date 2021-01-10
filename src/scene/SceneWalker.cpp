@@ -19,7 +19,11 @@ struct SceneWalker: pugi::xml_tree_walker
             auto current = fac.create(Util::snakeToCamel(node.name()));
             current->initFromXMLNode(node);
             
-            if(std::string(node.name()).find("light") != std::string::npos) 
+            if (std::string(node.name()) == "camera")
+            {
+                scene.currentCam = std::dynamic_pointer_cast<Camera>(current);
+            }
+            else if(std::string(node.name()).find("light") != std::string::npos) 
             {
                 if (std::string(node.name()) == "ambient_light")
                 {

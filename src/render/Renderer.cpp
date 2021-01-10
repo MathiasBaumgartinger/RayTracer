@@ -39,7 +39,7 @@ public:
 
         outfile.close();
     }
-
+    std::string currentFileName = "test";
 private:
     /*
     * Write the meta data to file
@@ -95,7 +95,6 @@ private:
         }
     }
 
-    std::string currentFileName = "test";
     std::ofstream outfile;
     Camera &cam;
     Scene &scene;
