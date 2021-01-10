@@ -24,8 +24,11 @@ public:
 
     virtual void initFromXMLNode(pugi::xml_node node) {};
 
-    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Camera& cam) 
-    { std::cout << "in Node3d" << std::endl; return RenderIntersection(); }
+    virtual double intersectionTest(std::shared_ptr<RayCast> ray) 
+    { return -1; }
+
+    virtual RenderIntersection colorAtPoint(Vector3 hitspot, double distance, Scene& scene, Camera& cam)
+    { return RenderIntersection(); }
 
     bool isVisible = false;
     Vector3 position;

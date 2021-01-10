@@ -19,11 +19,21 @@ public:
         {
             if(obj.get()->isVisible)
             {
-                RenderIntersection intersection = obj.get()->intersectionTest(std::make_shared<RayCast>(*this), s, cam);
+                double distance = obj->intersectionTest(std::make_shared<RayCast>(*this));
+                RenderIntersection intersection;
+                if (distance >= 0)
+                {
+                    Vector3 hitspot1 = castTo.normalized() * distance + position;
+                    intersection = obj->colorAtPoint(hitspot1, distance, s, cam);
+                }
+                else
+                {
+                    intersection = RenderIntersection();
+                }
+                
+                
                 if(intersection.collides && intersection.distance < minDistance)
                 {
-                    //std::cout << "Ray " << this << " collides with " << obj->name << " at position " << obj->position << "\n"; 
-                    //std::cout << intersection.color << std::endl;
                     minDistance = intersection.distance;
                     firstIntersection = intersection;
                     setColliding(true);

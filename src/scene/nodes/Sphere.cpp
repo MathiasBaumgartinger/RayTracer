@@ -7,6 +7,7 @@
 #include "../Material.cpp"
 #include "../../util/Math.cpp"
 #include "../../util/Render.cpp"
+#include <memory>
 
 class Sphere : public Node3d 
 {
@@ -36,28 +37,34 @@ public:
         radius = node.attribute("radius").as_float();
     }
 
-    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Camera& cam) override
+    virtual double intersectionTest(std::shared_ptr<RayCast> ray) override
     {
         Vector3 rayToCenter = position - ray->position;
 
         double rayToCenterNormal =  rayToCenter.dot((ray->castTo).normalized());
         if (rayToCenterNormal < 0) 
-            return RenderIntersection();
+            return -1;
 
         double distanceToCenterNormal = sqrt(rayToCenter.dot(rayToCenter) - pow(rayToCenterNormal, 2));
         if (distanceToCenterNormal < 0 || distanceToCenterNormal > radius) 
-            return RenderIntersection();
+            return -1;
 
         double difference = sqrt(pow(radius, 2) - pow(distanceToCenterNormal, 2));
         double distance1 = rayToCenterNormal - difference;
 
-        Vector3 hitspot1 = (ray->castTo).normalized() * distance1 + ray->position;
+        return distance1;
+    }
+
+    RenderIntersection colorAtPoint(Vector3 hitspot1, double distance, Scene& scene, Camera& cam) override
+    {
         Vector3 normal = (hitspot1 - position).normalized();
 
         Vector3 color = material.color;
         Vector3 lightIntensity = scene.env.ambientLight.color * material.phong.x;
         Vector3 specularColor(0,0,0);
         Vector3 toViewDir = (cam.position - hitspot1).normalized();
+
+        // Phong shading
         for (auto node : scene.lights)
         {
             std::shared_ptr<ParallelLight> light = std::static_pointer_cast<ParallelLight>(node);
@@ -71,6 +78,22 @@ public:
             else
             {
                 toLightDir = (light->position - hitspot1).normalized();
+            }
+
+            // Check for shadow
+            RayCast shadowRay("", hitspot1 + toLightDir * 0.001, toLightDir);
+            double minDistance = DBL_MAX;
+            for (auto object : scene.objects)
+            {
+                double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay));
+                if (intersectionDistance >= 0 && intersectionDistance < minDistance)
+                {
+                    minDistance = intersectionDistance;
+                }
+            }
+            if (minDistance < abs((light->position - hitspot1).len())) 
+            {
+                return RenderIntersection(minDistance, color * lightIntensity, true);
             }
 
             double diffuse = std::max((normal.dot(toLightDir)), 0.0);
@@ -89,8 +112,7 @@ public:
         }
         
         color = color * lightIntensity; 
-
-        return RenderIntersection(distance1, color + specularColor, true);
+        return RenderIntersection(distance, color + specularColor, true);
     }
 
     float radius;
