@@ -32,7 +32,6 @@ public:
 
                 RayCast ray("", cam.position, Vector3(x, y, -1));
                 Vector3 normalized = ray.castTo;
-                //std::cout << "(" << normalized.x << ", " << normalized.y << ", " << normalized.z << ")\n";
                 writeToPPM(ray, maxColorValue);
             }
         }
@@ -62,11 +61,7 @@ private:
         if (debug)
         {
             Vector3 normalized = (ray.castTo - cam.position).normalized();
-            //std::cout << "(" << normalized.x << ", " << normalized.y << ", " << normalized.z << ")\n";
-            normalized = normalized * ++maxColorValue; /*
-            normalized = normalized * static_cast<double>(maxColorValue) / 2; Vector3(normalized.x + 1, normalized.y + 1, normalized.z + 1);
-            */
-            //std::cout << "(" << normalized.x << ", " << normalized.y << ", " << normalized.z << ")\n\n";
+            normalized = normalized * ++maxColorValue; 
 
             normalized.x = floor(normalized.x);
             normalized.y = floor(normalized.y), normalized.z = floor(normalized.z);
@@ -81,6 +76,7 @@ private:
             RenderIntersection intersection = ray.trace(scene, cam);
             if (ray.isColliding())
             {
+                // If the color codes excceed 255 because of high components, etc. take 255 instead
                 intersection.color = Vector3(
                     std::min(intersection.color.x * 255, 255.0), 
                     std::min(intersection.color.y * 255, 255.0), 

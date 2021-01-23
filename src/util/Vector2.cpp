@@ -1,5 +1,9 @@
 #pragma once
 
+
+/*
+* Vector2 class for doing calculations.
+*/
 class Vector2 {
 public:
     Vector2(double x, double y) : x(x), y(y) {}

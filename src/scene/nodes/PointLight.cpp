@@ -2,6 +2,9 @@
 
 #include "AmbientLight.cpp"
 
+/*
+* PointLight having color, position and direction.
+*/
 class PointLight : public Node3d 
 {
 public:
@@ -11,6 +14,9 @@ public:
     PointLight(std::string name, Vector3 position, Vector3 color, Vector3 direction) 
         : Node3d(name, position), color(color), direction(direction) {}
 
+    /*
+    * Initializer for the specified XML format, overriden from node3d
+    */
     void initFromXMLNode(pugi::xml_node node) override 
     {
         pugi::xml_node colorNode = node.child("color");

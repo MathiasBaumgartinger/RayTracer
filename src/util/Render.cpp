@@ -1,5 +1,8 @@
 #include "Vector3.cpp"
 
+/*
+* Render helper namespace
+*/
 namespace Render 
 {
     Vector3 reflect(Vector3 I, Vector3 N)

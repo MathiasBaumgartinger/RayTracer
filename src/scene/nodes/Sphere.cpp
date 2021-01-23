@@ -9,6 +9,9 @@
 #include "../../util/Render.cpp"
 #include <memory>
 
+/*
+* Simple Sphere Surface, derived from Node3d.
+*/
 class Sphere : public Node3d 
 {
 public:
@@ -18,6 +21,9 @@ public:
     Sphere() 
         : Node3d("Sphere", Vector3(0,0,0)), radius(1), material(Material()) { isVisible = true; }
     
+    /*
+    * Initializer for the specified XML format, overriden from node3d
+    */
     void initFromXMLNode(pugi::xml_node node) override 
     {
         pugi::xml_node posNode = node.child("position");
@@ -37,6 +43,9 @@ public:
         radius = node.attribute("radius").as_float();
     }
 
+    /*
+    * Returns the closest intersection in the scene with the given ray. -1 if no collision could be found
+    */
     virtual double intersectionTest(std::shared_ptr<RayCast> ray) override
     {
         Vector3 rayToCenter = position - ray->position;
@@ -55,6 +64,9 @@ public:
         return distance1;
     }
 
+    /*
+    * Get the color at a specified point on the sphere.
+    */
     RenderIntersection colorAtPoint(Vector3 hitspot1, double distance, Scene& scene, Camera& cam) override
     {
         Vector3 normal = (hitspot1 - position).normalized();
@@ -103,7 +115,6 @@ public:
             {
                 Vector3 reflected = 2.0f * (normal.dot(toLightDir)) * normal - toLightDir;
                 double angle = std::max((reflected.dot(toViewDir)), 0.0);
-                //if(angle >= 1) std::cout << angle << std::endl; else angle = 1.1;
                 specular = pow(angle, material.phongExp);
             }
             specularColor = specularColor + light->color * specular * material.phong.z;

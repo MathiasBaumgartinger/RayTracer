@@ -9,8 +9,17 @@
 #include <string>
 #include <functional>
 
+/*
+* In order to be able to dynamically create classes from the specified XML file, I created a factory that stores each 
+* node. Giving a predefined alias, one can create an object by a stored prototype.
+*/
 class SceneFactory {
 public:
+    /*
+    * Use this function to create a new node by its alias. If the node can be found it will be returned 
+    * (copy or default constructed depending on specification).
+    * If it cannot be found a nullptr will be returned.
+    */
     std::shared_ptr<Node3d> create(const std::string &alias) const 
     {
         auto it = nodes.find(alias);
@@ -20,6 +29,13 @@ public:
             return std::shared_ptr<Node3d>(nullptr);
     }
 
+    /*
+    * Register a new type in the factory.
+    *  Use this if you want to create clones of the prototype
+    *    factory.register_type("Node3d", node3d);
+    * Use this syntax if you want to create default constructed objects
+    *   factory.register_type<Node3d>("Node3d");
+    */
     template <class T>
     void register_type(const std::string &alias, T prototype = T()) 
     {

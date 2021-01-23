@@ -5,7 +5,10 @@
 #include <memory>
 #include <stdlib.h>
 
-
+/*
+* Walks a specified xml file and creates its corresponding nodes. 
+* Uses the pugi_xml library: https://pugixml.org/ for more information
+*/
 struct SceneWalker: pugi::xml_tree_walker
 {
     SceneWalker(SceneFactory& fac, Scene &scene) : fac(fac), scene(scene) {}

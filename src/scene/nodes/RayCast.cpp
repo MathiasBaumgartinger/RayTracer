@@ -4,13 +4,18 @@
 #include "../Scene.cpp"
 #include <math.h>
 
-
+/*
+* A raycast for raytracing, has a position and a castTo indicating the direction. Derived from Node3d.
+*/
 class RayCast : public Node3d 
 {
 public: 
     RayCast(std::string name, Vector3 position, Vector3 castTo) : Node3d(name, position), castTo(castTo) {}
     RayCast() : Node3d("Raycast", Vector3(0,0,0)), castTo(Vector3(0,0,-1)) {}
 
+    /*
+    * Trace an intersection point.
+    */
     RenderIntersection trace(Scene& s, Camera& cam)
     {
         double minDistance = DBL_MAX;

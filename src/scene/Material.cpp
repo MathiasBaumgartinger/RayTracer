@@ -1,8 +1,13 @@
+#pragma once
+
 #include "../util/Vector3.cpp"
 #include "../util/Util.cpp"
 #include "../pugixml/src/pugixml.cpp"
 #include <string>
 
+/*
+* Material for surfaces. Two different types, solid or textured.
+*/
 class Material 
 {
 public:
@@ -33,6 +38,9 @@ public:
         }
     }
 
+    /*
+    * Initializer for the specified XML format, overriden from node3d
+    */
     void initFromXMLNode(pugi::xml_node node, int mode) 
     {
         pugi::xml_node colorNode = node.child("color");

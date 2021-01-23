@@ -1,7 +1,11 @@
 #pragma once
 
+#include <exception>
 #include <iostream>
 
+/*
+* Vector3 class for doing calculations.
+*/
 class Vector3 {
 public:
     Vector3(double x, double y, double z) : x(x), y(y), z(z) {}
@@ -85,7 +89,39 @@ public:
         return !(*this == other);
     }
 
+    double operator[](const int index) const
+    {
+        if (index == 0) 
+        {
+            return x;
+        }
+        else if (index == 1)
+        {
+            return y;
+        }
+        else if (index == 2) 
+        {
+            return z;
+        }
+        return 0;
+    }
 
+    double & operator[](const int index)
+    {
+        if (index == 0) 
+        {
+            return x;
+        }
+        else if (index == 1)
+        {
+            return y;
+        }
+        else if (index == 2) 
+        {
+            return z;
+        }
+        throw std::exception();
+    }
 };
 
 std::ostream& operator<<(std::ostream& stream, const Vector3& other)

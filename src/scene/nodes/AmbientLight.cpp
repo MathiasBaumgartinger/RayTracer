@@ -11,6 +11,9 @@ public:
     AmbientLight()
         : Node3d("AmbientLight", Vector3(0,0,0)), color(Vector3(1,1,1)) {}
 
+    /*
+    * Initializer for the specified XML format, overriden from node3d
+    */
     virtual void initFromXMLNode(pugi::xml_node node) override 
     {
         pugi::xml_node colorNode = node.child("color");

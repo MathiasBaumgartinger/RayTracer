@@ -5,6 +5,9 @@
 #include "Vector2.cpp"
 #include "../pugixml/src/pugixml.cpp"
 
+/*
+* Utility features for Lab2a
+*/
 namespace Util 
 {
     // From https://parkyo.github.io/categories/snake_to_camel/
@@ -32,11 +35,13 @@ namespace Util
         return camel;
     }
 
+    // Creates a vector from the specified node with the identifiers
     Vector3 vec3FromXML(pugi::xml_node node, std::string x="x", std::string y="y", std::string z="z")
     {
         return Vector3(node.attribute(x.c_str()).as_double(), node.attribute(y.c_str()).as_double(), node.attribute(z.c_str()).as_double());
     }
 
+    // Creates a vector from the specified node with the identifiers
     Vector2 vec2FromXML(pugi::xml_node node, std::string x="x", std::string y="y")
     {
         return Vector2(node.attribute(x.c_str()).as_double(), node.attribute(y.c_str()).as_double());

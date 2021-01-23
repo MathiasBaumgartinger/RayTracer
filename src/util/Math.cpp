@@ -3,6 +3,9 @@
 #include <math.h>
 #include "Vector3.cpp"
 
+/*
+* Math helper namespace
+*/
 namespace Math 
 {
     # define PI           3.14159265358979323846

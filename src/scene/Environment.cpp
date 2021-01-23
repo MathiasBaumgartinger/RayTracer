@@ -1,6 +1,10 @@
 #include "../util/Vector3.cpp"
 #include "nodes/AmbientLight.cpp"
 
+/*
+* An environment for the scene.
+* Has a background color and contains the ambientLight (see nodes/AmbientLight.cpp)
+*/
 class Environment 
 {
 public:

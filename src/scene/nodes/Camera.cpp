@@ -3,6 +3,10 @@
 #include "Node3d.cpp"
 #include "../../util/Math.cpp"
 
+/*
+* Camera node with lookAt, up, field of view (x, y) and resolution. Derived from Node3d.
+* maxBounce determines the amount of bouncing it should do while raytracing.
+*/
 class Camera : public Node3d 
 {
 public:
@@ -20,6 +24,9 @@ public:
         fovy = (resolution.y / resolution.x) * fov;
     }
 
+    /*
+    * Initializer for the specified XML format, overriden from node3d
+    */
     void initFromXMLNode(pugi::xml_node node) override 
     {
         pugi::xml_node posNode = node.child("position");
