@@ -12,7 +12,18 @@
 
 int main(int argc, char *argv[])
 {
-    SceneFactory fac;
+    ObjImporter importer;
+    Mesh mesh;
+    importer.import("../scenes/box.obj", mesh);
+
+    std::cout << "Printing vbuffer of mesh:" << std::endl;
+    for (Vector3 vertex : mesh.vBuffer) 
+    {
+        std::cout << vertex << std::endl;
+    }
+    
+
+    /*SceneFactory fac;
 
     Scene scene;
     SceneWalker walker(fac, scene);
@@ -29,5 +40,5 @@ int main(int argc, char *argv[])
     Renderer rend(*scene.currentCam.get(), scene);
     rend.currentFileName = doc.child("scene").attribute("output_file").as_string();
 
-    rend.render();
+    rend.render();*/
 }

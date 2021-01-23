@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Vector3.cpp"
 
 /*

@@ -14,13 +14,14 @@ class ObjImporter;
 
 class Mesh : public Node3d
 {
+public:
     Mesh(std::string name, Vector3 position, Material& material) 
         : Node3d(name, position), material(material) 
     { 
         isVisible = true; 
     }
     
-    Mesh(char *path) 
+    Mesh() 
         : Node3d("Sphere", Vector3(0,0,0)), material(Material()) 
     { 
         isVisible = true; 
@@ -32,6 +33,7 @@ class Mesh : public Node3d
     void initFromXMLNode(pugi::xml_node node) override 
     {
         path = node.attribute("name").as_string();
+
         pugi::xml_node materialNode;
         if(node.child("material_solid")) 
         {
@@ -116,7 +118,6 @@ class Mesh : public Node3d
         return RenderIntersection();
     }
 
-public:
     std::vector<Vector3> vBuffer;
     std::vector<Vector3> vnBuffer;
     std::vector<Vector3> vtBuffer;
