@@ -1,5 +1,6 @@
 #include "render/Renderer.cpp"
 #include "scene/SceneWalker.cpp"
+#include "util/ObjImporter.cpp"
 #include <filesystem>
 #include <iostream>
 #include <map>
