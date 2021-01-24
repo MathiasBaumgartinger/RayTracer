@@ -59,6 +59,12 @@ public:
         return (x * other.x + y * other.y + z * other.z);
     }
 
+    Vector3 cross(const Vector3& other) const 
+    {
+        //return Vector3(z * other.y - y * other.z, x * other.z - z * other.x, y * other.x - x * other.y);
+        return Vector3(y * other.z - z * other.y, z * other.x - x * other.z, x * other.y - y * other.x);
+    }
+
     Vector3 Multiply(const float other) const 
     {
         return Vector3(x * other, y * other, z * other);
@@ -87,6 +93,11 @@ public:
     bool operator!=(const Vector3& other) const 
     {
         return !(*this == other);
+    }
+
+    bool operator<(const Vector3& other) const 
+    {
+        return x < other.x || x == other.x && (y < other.y || y == other.y && z < other.z);
     }
 
     double operator[](const int index) const

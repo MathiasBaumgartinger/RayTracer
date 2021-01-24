@@ -1,6 +1,7 @@
 #include "nodes/Node3d.cpp"
 #include "nodes/Camera.cpp"
 #include "nodes/Sphere.cpp"
+#include "nodes/Mesh.cpp"
 #include "nodes/AmbientLight.cpp"
 #include "nodes/ParallelLight.cpp"
 #include "nodes/PointLight.cpp"
@@ -48,6 +49,7 @@ public:
         register_type<Camera>("Camera");
         register_type<Node3d>("Node3d");
         register_type<Sphere>("Sphere");
+        register_type<Mesh>("Mesh");
         register_type<AmbientLight>("AmbientLight");
         register_type<ParallelLight>("ParallelLight");
         register_type<PointLight>("PointLight");

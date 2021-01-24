@@ -9,6 +9,7 @@
 #include "../../util/Render.cpp"
 #include "../../util/ObjImporter.cpp"
 #include <memory>
+#include <string>
 
 class ObjImporter;
 
@@ -22,7 +23,7 @@ public:
     }
     
     Mesh() 
-        : Node3d("Sphere", Vector3(0,0,0)), material(Material()) 
+        : Node3d("Mesh", Vector3(0,0,0)), material(Material()) 
     { 
         isVisible = true; 
     }
@@ -32,7 +33,12 @@ public:
     */
     void initFromXMLNode(pugi::xml_node node) override 
     {
-        path = node.attribute("name").as_string();
+        path = std::string("../scenes/") + node.attribute("name").as_string();
+        ObjImporter obj;
+        obj.import(path);
+        vBuffer = obj.vBufferOrdered;
+        vtBuffer = obj.vtBufferOrdered;
+        vnBuffer = obj.vnBufferOrdered;
 
         pugi::xml_node materialNode;
         if(node.child("material_solid")) 
@@ -50,18 +56,93 @@ public:
     /*
     * Returns the closest intersection in the scene with the given ray. -1 if no collision could be found
     */
-    virtual double intersectionTest(std::shared_ptr<RayCast> ray) override
+    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Camera& cam, bool findColor=true, int bounces=1) override
     {
-        return 0;
+        double minDist = DBL_MAX;
+        Vector3 hitspot(0,0,0);
+        int triangleIndex = 0;
+
+        // For each triangle ...
+        for(int i = 0; i < vBuffer.size(); i+=3)
+        {
+            Vector3 v0 = vBuffer[i] + position;
+            Vector3 v1 = vBuffer[i+1] + position;
+            Vector3 v2 = vBuffer[i+2] + position;
+            //std::cout << "Triangle " << i << " at positions " << v0 << ", " << v1 << ", " << v2 << "\n"; 
+
+            // compute plane's normal
+            Vector3 v0v1 = v1 - v0;
+            Vector3 v0v2 = v2 - v0; 
+
+            // no need to normalize
+            Vector3 N = v0v1.cross(v0v2); // N 
+            double area2 = N.len();
+
+            // Step 1: finding P
+    
+            // check if ray and plane are parallel ?
+            double NdotRayDirection = N.dot(ray->castTo); 
+            if (fabs(NdotRayDirection) < 0.000001) // almost 0 
+                continue; // they are parallel so they don't intersect ! 
+
+            // compute d parameter using equation 2
+            double d = N.dot(v0);
+
+            // compute t (equation 3)
+            double t = (N.dot(ray->position) + d) / NdotRayDirection; 
+            // check if the triangle is in behind the ray
+            if (t < 0) continue; // the triangle is behind
+
+            // compute the intersection point using equation 1
+            Vector3 P = ray->position + t * ray->castTo; 
+        
+            // Step 2: inside-outside test
+            Vector3 C(0,0,0); // vector perpendicular to triangle's plane 
+        
+            // edge 0
+            Vector3 edge0 = v1 - v0; 
+            Vector3 vp0 = P - v0; 
+            C = edge0.cross(vp0); 
+            if (N.dot(C) < 0) continue; // P is on the right side 
+        
+            // edge 1
+            Vector3 edge1 = v2 - v1; 
+            Vector3 vp1 = P - v1; 
+            C = edge1.cross(vp1); 
+            if (N.dot(C) < 0)  continue; // P is on the right side 
+        
+            // edge 2
+            Vector3 edge2 = v0 - v2; 
+            Vector3 vp2 = P - v2; 
+            C = edge2.cross(vp2); 
+            if (N.dot(C) < 0) continue; // P is on the right side; 
+        
+            if (t < minDist && t >= 0) 
+            {
+                minDist = t;
+                hitspot = P;
+                triangleIndex = i;
+            }
+        }
+
+        if (minDist != DBL_MAX)
+        {
+            if (findColor)
+            {
+                Vector3 normal = ((vnBuffer[triangleIndex] + vnBuffer[triangleIndex+1] + vnBuffer[triangleIndex+2]) / 3).normalized();
+                return colorAtPoint(hitspot, normal, minDist, scene, cam);
+            }
+            return RenderIntersection(minDist, Vector3(0,0,0), true);
+        }
+        
+        return RenderIntersection();
     }
 
     /*
-    * Get the color at a specified point on the sphere.
+    * Get the color at a specified point on the mesh.
     */
-    RenderIntersection colorAtPoint(Vector3 hitspot1, double distance, Scene& scene, Camera& cam) override
+    RenderIntersection colorAtPoint(Vector3 hitspot1, Vector3 normal, double distance, Scene& scene, Camera& cam, bool reflect=true)
     {
-        /*Vector3 normal = (hitspot1 - position).normalized();
-
         Vector3 color = material.color;
         Vector3 lightIntensity = scene.env.ambientLight.color * material.phong.x;
         Vector3 specularColor(0,0,0);
@@ -70,13 +151,14 @@ public:
         // Phong shading
         for (auto node : scene.lights)
         {
-            std::shared_ptr<ParallelLight> light = std::static_pointer_cast<ParallelLight>(node);
+            std::shared_ptr<Light> light = std::dynamic_pointer_cast<Light>(node);
+            std::shared_ptr<ParallelLight> parellelLight = std::dynamic_pointer_cast<ParallelLight>(node);
             Vector3 toLightDir(0,0,0);
 
             // Is parallel?
-            if (light)
+            if (parellelLight)
             {
-                toLightDir = (light->direction * -1).normalized();
+                toLightDir = (parellelLight->direction * -1).normalized();
             }
             else
             {
@@ -88,7 +170,8 @@ public:
             double minDistance = DBL_MAX;
             for (auto object : scene.objects)
             {
-                double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay));
+                if (object.get() == this) continue;
+                double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay), scene, cam, false).distance;
                 if (intersectionDistance >= 0 && intersectionDistance < minDistance)
                 {
                     minDistance = intersectionDistance;
@@ -96,8 +179,9 @@ public:
             }
             if (minDistance < abs((light->position - hitspot1).len())) 
             {
-                return RenderIntersection(minDistance, color * lightIntensity, true);
+                continue;
             }
+            
 
             double diffuse = std::max((normal.dot(toLightDir)), 0.0);
             double specular = 0.0;
@@ -114,8 +198,7 @@ public:
         }
         
         color = color * lightIntensity; 
-        return RenderIntersection(distance, color + specularColor, true);*/
-        return RenderIntersection();
+        return RenderIntersection(distance, color + specularColor, true);
     }
 
     std::vector<Vector3> vBuffer;

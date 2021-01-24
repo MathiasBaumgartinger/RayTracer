@@ -16,7 +16,7 @@ public:
     /*
     * Trace an intersection point.
     */
-    RenderIntersection trace(Scene& s, Camera& cam)
+    RenderIntersection trace(Scene& s, Camera& cam, int bounces=1)
     {
         double minDistance = DBL_MAX;
         RenderIntersection firstIntersection;
@@ -24,18 +24,7 @@ public:
         {
             if(obj.get()->isVisible)
             {
-                double distance = obj->intersectionTest(std::make_shared<RayCast>(*this));
-                RenderIntersection intersection;
-                if (distance >= 0)
-                {
-                    Vector3 hitspot1 = castTo.normalized() * distance + position;
-                    intersection = obj->colorAtPoint(hitspot1, distance, s, cam);
-                }
-                else
-                {
-                    intersection = RenderIntersection();
-                }
-                
+                RenderIntersection intersection = obj->intersectionTest(std::make_shared<RayCast>(*this), s, cam, bounces);                
                 
                 if(intersection.collides && intersection.distance < minDistance)
                 {

@@ -46,46 +46,55 @@ public:
     /*
     * Returns the closest intersection in the scene with the given ray. -1 if no collision could be found
     */
-    virtual double intersectionTest(std::shared_ptr<RayCast> ray) override
+    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Camera& cam, bool findColor=true, int bounces=1) override
     {
         Vector3 rayToCenter = position - ray->position;
 
+        // Return no collision
         double rayToCenterNormal =  rayToCenter.dot((ray->castTo).normalized());
         if (rayToCenterNormal < 0) 
-            return -1;
+            return RenderIntersection(); // Default constructor says it does not collide
 
+        // Return no collision
         double distanceToCenterNormal = sqrt(rayToCenter.dot(rayToCenter) - pow(rayToCenterNormal, 2));
         if (distanceToCenterNormal < 0 || distanceToCenterNormal > radius) 
-            return -1;
+            return RenderIntersection(); // Default constructor says it does not collide
 
         double difference = sqrt(pow(radius, 2) - pow(distanceToCenterNormal, 2));
         double distance1 = rayToCenterNormal - difference;
+        Vector3 hitspot1 = ray->castTo.normalized() * distance1 + ray->position;
 
-        return distance1;
+        // For finding the shadow
+        if (!findColor) return RenderIntersection(distance1, Vector3(0,0,0), true);
+
+        return colorAtPoint(hitspot1, distance1, scene, cam, bounces);
     }
 
     /*
     * Get the color at a specified point on the sphere.
     */
-    RenderIntersection colorAtPoint(Vector3 hitspot1, double distance, Scene& scene, Camera& cam) override
+    RenderIntersection colorAtPoint(Vector3 hitspot1, double distance, Scene& scene, Camera& cam, int bounces)
     {
+        //std::cout << "Starting to find color ...\n";
         Vector3 normal = (hitspot1 - position).normalized();
 
         Vector3 color = material.color;
         Vector3 lightIntensity = scene.env.ambientLight.color * material.phong.x;
         Vector3 specularColor(0,0,0);
+        Vector3 reflectanceColor(0,0,0);
         Vector3 toViewDir = (cam.position - hitspot1).normalized();
 
         // Phong shading
         for (auto node : scene.lights)
         {
-            std::shared_ptr<ParallelLight> light = std::static_pointer_cast<ParallelLight>(node);
+            std::shared_ptr<Light> light = std::dynamic_pointer_cast<Light>(node);
+            std::shared_ptr<ParallelLight> parellelLight = std::dynamic_pointer_cast<ParallelLight>(node);
             Vector3 toLightDir(0,0,0);
 
             // Is parallel?
-            if (light)
+            if (parellelLight)
             {
-                toLightDir = (light->direction * -1).normalized();
+                toLightDir = (parellelLight->direction * -1).normalized();
             }
             else
             {
@@ -97,7 +106,7 @@ public:
             double minDistance = DBL_MAX;
             for (auto object : scene.objects)
             {
-                double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay));
+                double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay), scene, cam, false).distance;
                 if (intersectionDistance >= 0 && intersectionDistance < minDistance)
                 {
                     minDistance = intersectionDistance;
@@ -111,19 +120,29 @@ public:
             double diffuse = std::max((normal.dot(toLightDir)), 0.0);
             double specular = 0.0;
 
+            Vector3 reflected = 2.0f * (normal.dot(toLightDir)) * normal - toLightDir;
             if(diffuse > 0.0) 
             {
-                Vector3 reflected = 2.0f * (normal.dot(toLightDir)) * normal - toLightDir;
                 double angle = std::max((reflected.dot(toViewDir)), 0.0);
                 specular = pow(angle, material.phongExp);
             }
             specularColor = specularColor + light->color * specular * material.phong.z;
 
             lightIntensity = lightIntensity + light->color * diffuse * material.phong.y;
+
+            /*if  (material.reflectance > 0 && bounces > 0) 
+            {
+                Scene copiedScene = scene; 
+                copiedScene.objects.erase(std::remove(copiedScene.objects.begin(), copiedScene.objects.end(), std::make_shared<Sphere>(*this)), copiedScene.objects.end());
+                RayCast reflectionRay("", hitspot1, reflected);
+                RenderIntersection reflIntersection = reflectionRay.trace(copiedScene, cam, --bounces);
+                reflectanceColor = reflectanceColor + material.reflectance * reflIntersection.color;
+                //std::cout << reflectanceColor << std::endl;
+            }*/
         }
         
         color = color * lightIntensity; 
-        return RenderIntersection(distance, color + specularColor, true);
+        return RenderIntersection(distance, color + specularColor + reflectanceColor, true);
     }
 
     float radius;
