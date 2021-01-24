@@ -1,19 +1,18 @@
 #pragma once
 
-#include "AmbientLight.cpp"
+#include "Light.cpp"
 
 /*
 * ParallelLight having color and direction. Position is redundant for this node.
 * Also known as DirectionalLight.
 */
-class ParallelLight : public Node3d 
+class ParallelLight : public Light 
 {
 public:
-    ParallelLight()
-        : Node3d("ParallelLight", Vector3(0,0,0)), color(Vector3(1,1,1)), direction(0.5, -0.5, 0) {}
+    ParallelLight() : Light(), direction(0.5, -0.5, 0) {}
 
     ParallelLight(std::string name, Vector3 position, Vector3 color, Vector3 direction) 
-        : Node3d(name, position), color(color), direction(direction) {}
+        : Light(name, position, color), direction(direction) {}
 
     /*
     * Initializer for the specified XML format, overriden from node3d
@@ -26,7 +25,6 @@ public:
         direction = Util::vec3FromXML(directionNode, "x", "y", "z");
     }
 
-    Vector3 color;
     Vector3 direction;
 };
 
