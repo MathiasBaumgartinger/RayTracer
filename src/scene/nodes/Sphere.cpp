@@ -132,10 +132,15 @@ public:
 
             if  (material.reflectance > 0 && bounces > 0) 
             {
-                RayCast reflectionRay("reflection", hitspot1, reflected);
+                Vector3 reflectionDir = 2.0f * (normal.dot(toViewDir)) * normal - toViewDir;
+                RayCast reflectionRay("reflection", hitspot1, reflectionDir);
+                Camera hitspotAsViewer;
+                hitspotAsViewer.position = hitspot1;
                 for (auto object : scene.objects)
                 {
-                    RenderIntersection reflectionIntersection = object->intersectionTest(std::make_shared<RayCast>(reflectionRay), scene, cam, true, --bounces);
+                    if (object.get() == this) continue;
+
+                    RenderIntersection reflectionIntersection = object->intersectionTest(std::make_shared<RayCast>(reflectionRay), scene, hitspotAsViewer, true, --bounces);
                     if (reflectionIntersection.collides)
                     {
                         reflectanceColor = reflectanceColor + material.reflectance * reflectionIntersection.color;

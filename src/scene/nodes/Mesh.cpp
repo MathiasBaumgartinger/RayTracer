@@ -73,9 +73,36 @@ public:
             // compute plane's normal
             Vector3 v0v1 = v1 - v0;
             Vector3 v0v2 = v2 - v0; 
-
             // no need to normalize
-            Vector3 N = v0v1.cross(v0v2); // N 
+            
+            //WIKIPEDIA
+            Vector3 h = ray->castTo.cross(v0v2);
+            double a = v0v1.dot(h);
+            if (fabs(a) < 0.000001)
+                continue;
+
+            double f = 1.0/a;
+            Vector3 s = ray->position - v0;
+            double u = f * s.dot(h);
+            if(u < 0.0 ||u > 1.0)
+                continue;
+
+            Vector3 q = s.cross(v0v1);
+            double v = f * ray->castTo.dot(q);
+            if(v < 0.0 || u + v > 1.0)
+                continue;
+
+            double t = f * v0v2.dot(q);
+
+            if(t < minDist && t > 0.000001) 
+            {
+                minDist = t;
+                hitspot = ray->position + t * ray->castTo;
+                triangleIndex = i;
+            }
+
+            //OTHER
+            /*Vector3 N = v0v1.cross(v0v2); // N 
             double area2 = N.len();
 
             // Step 1: finding P
@@ -122,7 +149,7 @@ public:
                 minDist = t;
                 hitspot = P;
                 triangleIndex = i;
-            }
+            }*/
         }
 
         if (minDist != DBL_MAX)
