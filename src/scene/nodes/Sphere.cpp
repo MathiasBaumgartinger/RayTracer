@@ -102,7 +102,7 @@ public:
             }
 
             // Check for shadow
-            RayCast shadowRay("", hitspot1 + toLightDir * 0.001, toLightDir);
+            RayCast shadowRay("shadow", hitspot1 + toLightDir * 0.001, toLightDir);
             double minDistance = DBL_MAX;
             for (auto object : scene.objects)
             {
@@ -130,15 +130,19 @@ public:
 
             lightIntensity = lightIntensity + light->color * diffuse * material.phong.y;
 
-            /*if  (material.reflectance > 0 && bounces > 0) 
+            if  (material.reflectance > 0 && bounces > 0) 
             {
+                RayCast reflectionRay("reflection", hitspot1, reflected);
+                for (auto object : scene.objects)
+                {
+                    RenderIntersection reflectionIntersection = object->intersectionTest(std::make_shared<RayCast>(reflectionRay), scene, cam, true, --bounces);
+                    if (reflectionIntersection.collides)
+                    {
+                        reflectanceColor = reflectanceColor + material.reflectance * reflectionIntersection.color;
+                    }
+                }
                 Scene copiedScene = scene; 
-                copiedScene.objects.erase(std::remove(copiedScene.objects.begin(), copiedScene.objects.end(), std::make_shared<Sphere>(*this)), copiedScene.objects.end());
-                RayCast reflectionRay("", hitspot1, reflected);
-                RenderIntersection reflIntersection = reflectionRay.trace(copiedScene, cam, --bounces);
-                reflectanceColor = reflectanceColor + material.reflectance * reflIntersection.color;
-                //std::cout << reflectanceColor << std::endl;
-            }*/
+            }
         }
         
         color = color * lightIntensity; 

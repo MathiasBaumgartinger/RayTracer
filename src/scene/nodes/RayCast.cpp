@@ -20,6 +20,7 @@ public:
     {
         double minDistance = DBL_MAX;
         RenderIntersection firstIntersection;
+        std::shared_ptr<Node3d> intersectionObject;
         for (auto obj : s.objects)
         {
             if(obj.get()->isVisible)
@@ -28,6 +29,7 @@ public:
                 
                 if(intersection.collides && intersection.distance < minDistance)
                 {
+                    intersectionObject = obj;
                     minDistance = intersection.distance;
                     firstIntersection = intersection;
                     setColliding(true);
@@ -35,6 +37,7 @@ public:
             }  
         }
 
+        //if (name == "reflection" && intersectionObject != nullptr) std::cout << intersectionObject->name << "\n";
         return firstIntersection;
     }
 
