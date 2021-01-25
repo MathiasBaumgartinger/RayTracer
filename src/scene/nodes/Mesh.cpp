@@ -61,6 +61,7 @@ public:
         double minDist = DBL_MAX;
         Vector3 hitspot(0,0,0);
         int triangleIndex = 0;
+        double ux,vy;
 
         // For each triangle ...
         for(int i = 0; i < vBuffer.size(); i+=3)
@@ -99,11 +100,16 @@ public:
                 minDist = t;
                 hitspot = ray->position + t * ray->castTo;
                 triangleIndex = i;
+
+                //Vector3 N = v0v1.cross(v0v2);
+                //float denom = N.dot(N);
+                ux = u;// / denom;
+                vy = v;// / denom;
             }
 
-            //OTHER
+            //SCRATCHFROMPIXEL
             /*Vector3 N = v0v1.cross(v0v2); // N 
-            double area2 = N.len();
+            double denom = N.dot(N);
 
             // Step 1: finding P
     
@@ -156,8 +162,11 @@ public:
         {
             if (findColor)
             {
+                double ut = (1-ux-vy) * vtBuffer[triangleIndex].x + ux * vtBuffer[triangleIndex+1].x + vy * vtBuffer[triangleIndex+2].x;
+                double vt = (1-ux-vy) * vtBuffer[triangleIndex].y + ux * vtBuffer[triangleIndex+1].y + vy * vtBuffer[triangleIndex+2].y;
+                Vector3 color = material.getColorAt(ut, vt);
                 Vector3 normal = ((vnBuffer[triangleIndex] + vnBuffer[triangleIndex+1] + vnBuffer[triangleIndex+2]) / 3).normalized();
-                return colorAtPoint(hitspot, normal, minDist, scene, cam);
+                return colorAtPoint(color, hitspot, normal, minDist, scene, cam);
             }
             return RenderIntersection(minDist, Vector3(0,0,0), true);
         }
@@ -168,9 +177,8 @@ public:
     /*
     * Get the color at a specified point on the mesh.
     */
-    RenderIntersection colorAtPoint(Vector3 hitspot1, Vector3 normal, double distance, Scene& scene, Camera& cam, bool reflect=true)
+    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, Vector3 normal, double distance, Scene& scene, Camera& cam, bool reflect=true)
     {
-        Vector3 color = material.color;
         Vector3 lightIntensity = scene.env.ambientLight.color * material.phong.x;
         Vector3 specularColor(0,0,0);
         Vector3 toViewDir = (cam.position - hitspot1).normalized();

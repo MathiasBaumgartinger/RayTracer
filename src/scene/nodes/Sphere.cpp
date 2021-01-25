@@ -67,18 +67,22 @@ public:
         // For finding the shadow
         if (!findColor) return RenderIntersection(distance1, Vector3(0,0,0), true);
 
-        return colorAtPoint(hitspot1, distance1, scene, cam, bounces);
+        Vector3 d = (position - hitspot1).normalized();
+        double ut = 0.5 + atan2f(d.x, d.z) / 2*PI;
+        double vt = 0.5 - asin(d.y) / PI;
+        Vector3 color = material.getColorAt(ut, vt);
+
+        return colorAtPoint(color, hitspot1, distance1, scene, cam, bounces);
     }
 
     /*
     * Get the color at a specified point on the sphere.
     */
-    RenderIntersection colorAtPoint(Vector3 hitspot1, double distance, Scene& scene, Camera& cam, int bounces)
+    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, double distance, Scene& scene, Camera& cam, int bounces)
     {
         //std::cout << "Starting to find color ...\n";
         Vector3 normal = (hitspot1 - position).normalized();
 
-        Vector3 color = material.color;
         Vector3 lightIntensity = scene.env.ambientLight.color * material.phong.x;
         Vector3 specularColor(0,0,0);
         Vector3 reflectanceColor(0,0,0);
@@ -145,8 +149,15 @@ public:
                     {
                         reflectanceColor = reflectanceColor + material.reflectance * reflectionIntersection.color;
                     }
+                    else
+                    {
+                        reflectanceColor = reflectanceColor + material.refraction * (scene.env.backgroundColor - Vector3(0.05,0.05,0.05));
+                    }
                 }
-                Scene copiedScene = scene; 
+            }
+            if  ((material.transmittance > 0 || material.refraction > 0) && bounces > 0) 
+            {
+                
             }
         }
         

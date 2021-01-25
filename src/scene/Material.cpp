@@ -3,6 +3,8 @@
 #include "../util/Vector3.cpp"
 #include "../util/Util.cpp"
 #include "../pugixml/src/pugixml.cpp"
+#include "../lodepng/lodepng.h"
+#include "../lodepng/lodepng.cpp"
 #include <string>
 
 /*
@@ -28,14 +30,40 @@ public:
         setMode(mode);
     }
     
-    void setMode(int mode) {
+    void setMode(int mode) 
+    {
         this->mode = mode;
-        if(mode == Solid) {
+        if(mode == Solid)
+        {
     
         } 
-        else if(mode == Textured) {
-            //Load texture
+        else if(mode == Textured)
+        {
+            int error = lodepng::decode(texture, textureWidth, textureHeight, texturePath);
+            if (error) setMode(Solid); 
         }
+    }
+
+    Vector3 getColorAt(double u, double v)
+    {
+        if(mode == Solid)
+        {
+            return color;
+        } 
+        else if(mode == Textured)
+        {
+            int ut = u * textureWidth;
+            int vt = v * textureHeight;
+            //std::cout <<  ut << ", " << vt << std::endl;
+            int index = ut + textureWidth * vt * 4;
+            index = (ut + textureWidth * vt) * 4;
+            float r = static_cast<float>(texture[index]) / 255; 
+            float g = static_cast<float>(texture[index+1]) / 255;
+            float b = static_cast<float>(texture[index+2]) / 255;
+            Vector3 texel = Vector3(r,g,b);
+            return texel;
+        }
+        return Vector3(1,1,1);
     }
 
     /*
@@ -48,6 +76,12 @@ public:
         pugi::xml_node reflectanceNode = node.child("reflectance");
         pugi::xml_node transmittanceNode = node.child("transmittance");
         pugi::xml_node refractionNode = node.child("refraction");
+        pugi::xml_node textureNode = node.child("texture");
+        if (!textureNode.empty())
+        {
+            texturePath = std::string("../scenes/") + textureNode.attribute("name").as_string();
+            setMode(Textured);
+        }
 
         color = Util::vec3FromXML(colorNode, "r", "g", "b");
         phong = Util::vec3FromXML(phongNode, "ka", "kd", "ks");
@@ -65,5 +99,8 @@ public:
     float phongExp = 100;
 
     std::string texturePath;
+    std::vector<unsigned char> texture;
+    unsigned textureWidth, textureHeight;
+
     Vector3 color;
 };

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <exception>
+#include <iostream>
 
 /*
 * Vector2 class for doing calculations.
@@ -35,3 +37,9 @@ public:
         return !(*this == other);
     }
 };
+
+std::ostream& operator<<(std::ostream& stream, const Vector2& other)
+{
+    stream << "(" << other.x << ", " << other.y << ")";
+    return stream;
+}

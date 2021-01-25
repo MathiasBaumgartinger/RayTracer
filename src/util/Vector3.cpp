@@ -44,6 +44,11 @@ public:
         return Subtract(other);
     }
 
+    Vector3 operator-() const
+    {
+        return Vector3(-x, -y, -z);
+    }
+
     Vector3 Multiply(const Vector3& other) const 
     {
         return Vector3(x * other.x, y * other.y, z * other.z);
