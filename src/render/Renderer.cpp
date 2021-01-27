@@ -20,8 +20,6 @@ public:
     */
     void render()
     {
-        std::cout << cam.position << std::endl;
-        std::cout << cam.lookAtTransform << std::endl;
         ProgressBar progress{std::clog, 70u, "Working"};
         int maxColorValue = 255;
         preparePPM("P3", maxColorValue);
