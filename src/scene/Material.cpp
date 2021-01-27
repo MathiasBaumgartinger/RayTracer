@@ -52,17 +52,13 @@ public:
         } 
         else if(mode == Textured)
         {
-            while (u > 1)
-                u--;
-            while (v > 1)
-                v--;
-                
-            int ut = u * textureWidth;
-            int vt = v * textureHeight;
+            double tmp;
+            // Mulitply only by the fraction (modf returns the fraction) and take absolute value
+            int ut = abs(modf(u, &tmp) * textureWidth);
+            int vt = abs(modf(v, &tmp) * textureHeight);
             
-            //std::cout <<  ut << ", " << vt << std::endl;
-            int index = ut + textureWidth * vt * 4;
-            index = (ut + textureWidth * vt) * 4;
+            int index = (ut + textureWidth * vt) * 4;
+
             float r = static_cast<float>(texture[index]) / 255; 
             float g = static_cast<float>(texture[index+1]) / 255;
             float b = static_cast<float>(texture[index+2]) / 255;
