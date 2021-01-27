@@ -56,7 +56,7 @@ public:
     /*
     * Returns the closest intersection in the scene with the given ray. -1 if no collision could be found
     */
-    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Camera& cam, bool findColor=true, int bounces=1) override
+    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Vector3 from, bool findColor=true, int bounces=1) override
     {
         double minDist = DBL_MAX;
         Vector3 hitspot(0,0,0);
@@ -166,7 +166,7 @@ public:
                 double vt = (1-ux-vy) * vtBuffer[triangleIndex].y + ux * vtBuffer[triangleIndex+1].y + vy * vtBuffer[triangleIndex+2].y;
                 Vector3 color = material.getColorAt(ut, vt);
                 Vector3 normal = ((vnBuffer[triangleIndex] + vnBuffer[triangleIndex+1] + vnBuffer[triangleIndex+2]) / 3).normalized();
-                return colorAtPoint(color, hitspot, normal, minDist, scene, cam);
+                return colorAtPoint(color, hitspot, normal, minDist, scene, from);
             }
             return RenderIntersection(minDist, Vector3(0,0,0), true);
         }
@@ -177,11 +177,11 @@ public:
     /*
     * Get the color at a specified point on the mesh.
     */
-    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, Vector3 normal, double distance, Scene& scene, Camera& cam, bool reflect=true)
+    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, Vector3 normal, double distance, Scene& scene, Vector3 from, bool reflect=true)
     {
         Vector3 lightIntensity = scene.env.ambientLight.color * material.phong.x;
         Vector3 specularColor(0,0,0);
-        Vector3 toViewDir = (cam.position - hitspot1).normalized();
+        Vector3 toViewDir = (from - hitspot1).normalized();
 
         // Phong shading
         for (auto node : scene.lights)
@@ -206,7 +206,7 @@ public:
             for (auto object : scene.objects)
             {
                 if (object.get() == this) continue;
-                double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay), scene, cam, false).distance;
+                double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay), scene, from, false).distance;
                 if (intersectionDistance >= 0 && intersectionDistance < minDistance)
                 {
                     minDistance = intersectionDistance;

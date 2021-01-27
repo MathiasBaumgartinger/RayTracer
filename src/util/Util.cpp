@@ -35,6 +35,13 @@ namespace Util
         return camel;
     }
 
+    // Schlick approx like: https://en.wikipedia.org/wiki/Schlick%27s_approximation
+    double schlickApprox(double n1, double n2, double cosTheta)
+    {
+        double r0 = pow((n1 - n2) / (n1 + n2), 2);
+        return (r0 + (1 - r0) * pow(1 - cosTheta, 5));
+    }
+
     // Creates a vector from the specified node with the identifiers
     Vector3 vec3FromXML(pugi::xml_node node, std::string x="x", std::string y="y", std::string z="z")
     {

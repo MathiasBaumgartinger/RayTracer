@@ -25,7 +25,7 @@ public:
         {
             if(obj.get()->isVisible)
             {
-                RenderIntersection intersection = obj->intersectionTest(std::make_shared<RayCast>(*this), s, cam, bounces);                
+                RenderIntersection intersection = obj->intersectionTest(std::make_shared<RayCast>(*this), s, cam.position, bounces);                
                 
                 if(intersection.collides && intersection.distance < minDistance)
                 {

@@ -52,8 +52,14 @@ public:
         } 
         else if(mode == Textured)
         {
+            while (u > 1)
+                u--;
+            while (v > 1)
+                v--;
+                
             int ut = u * textureWidth;
             int vt = v * textureHeight;
+            
             //std::cout <<  ut << ", " << vt << std::endl;
             int index = ut + textureWidth * vt * 4;
             index = (ut + textureWidth * vt) * 4;

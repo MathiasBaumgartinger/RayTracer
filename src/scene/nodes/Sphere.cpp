@@ -46,7 +46,7 @@ public:
     /*
     * Returns the closest intersection in the scene with the given ray. -1 if no collision could be found
     */
-    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Camera& cam, bool findColor=true, int bounces=1) override
+    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Vector3 from, bool findColor=true, int bounces=1) override
     {
         Vector3 rayToCenter = position - ray->position;
 
@@ -67,18 +67,18 @@ public:
         // For finding the shadow
         if (!findColor) return RenderIntersection(distance1, Vector3(0,0,0), true);
 
-        Vector3 d = (position - hitspot1).normalized();
+        Vector3 d = (hitspot1 - position).normalized();
         double ut = 0.5 + atan2f(d.x, d.z) / 2*PI;
         double vt = 0.5 - asin(d.y) / PI;
         Vector3 color = material.getColorAt(ut, vt);
 
-        return colorAtPoint(color, hitspot1, distance1, scene, cam, bounces);
+        return colorAtPoint(color, hitspot1, distance1, scene, from, bounces);
     }
 
     /*
     * Get the color at a specified point on the sphere.
     */
-    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, double distance, Scene& scene, Camera& cam, int bounces)
+    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, double distance, Scene& scene, Vector3 from, int bounces)
     {
         //std::cout << "Starting to find color ...\n";
         Vector3 normal = (hitspot1 - position).normalized();
@@ -86,7 +86,8 @@ public:
         Vector3 lightIntensity = scene.env.ambientLight.color * material.phong.x;
         Vector3 specularColor(0,0,0);
         Vector3 reflectanceColor(0,0,0);
-        Vector3 toViewDir = (cam.position - hitspot1).normalized();
+        Vector3 refractionColor(0,0,0);
+        Vector3 toViewDir = (from - hitspot1).normalized();
 
         // Phong shading
         for (auto node : scene.lights)
@@ -110,7 +111,7 @@ public:
             double minDistance = DBL_MAX;
             for (auto object : scene.objects)
             {
-                double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay), scene, cam, false).distance;
+                double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay), scene, from, false).distance;
                 if (intersectionDistance >= 0 && intersectionDistance < minDistance)
                 {
                     minDistance = intersectionDistance;
@@ -134,35 +135,84 @@ public:
 
             lightIntensity = lightIntensity + light->color * diffuse * material.phong.y;
 
-            if  (material.reflectance > 0 && bounces > 0) 
+            if((material. transmittance > 0 || material.reflectance > 0) && bounces > 0)
             {
-                Vector3 reflectionDir = 2.0f * (normal.dot(toViewDir)) * normal - toViewDir;
-                RayCast reflectionRay("reflection", hitspot1, reflectionDir);
-                Camera hitspotAsViewer;
-                hitspotAsViewer.position = hitspot1;
-                for (auto object : scene.objects)
-                {
-                    if (object.get() == this) continue;
-
-                    RenderIntersection reflectionIntersection = object->intersectionTest(std::make_shared<RayCast>(reflectionRay), scene, hitspotAsViewer, true, --bounces);
-                    if (reflectionIntersection.collides)
-                    {
-                        reflectanceColor = reflectanceColor + material.reflectance * reflectionIntersection.color;
-                    }
-                    else
-                    {
-                        reflectanceColor = reflectanceColor + material.refraction * (scene.env.backgroundColor - Vector3(0.05,0.05,0.05));
-                    }
-                }
-            }
-            if  ((material.transmittance > 0 || material.refraction > 0) && bounces > 0) 
-            {
+                double cosTheta = -toViewDir.dot(normal);
+                bool inside = cosTheta > 0;
                 
+                double n1;
+                double n2;
+                if (inside)
+                {
+                    n1 = material.refraction;
+                    n2 = 1;
+
+                    normal = -normal;
+                }
+                else 
+                {
+                    n2 = material.refraction;
+                    n1 = 1;
+
+                    cosTheta = -cosTheta;
+                }
+                double schlick = Util::schlickApprox(n1, n2, cosTheta);
+
+                if  (!inside && material.reflectance > 0) 
+                {
+                    Vector3 reflectionDir = 2.0f * (normal.dot(toViewDir)) * normal - toViewDir;
+                    RayCast reflectionRay("reflection", hitspot1, reflectionDir);
+
+                    reflectanceColor = reflectanceColor +  trace(scene, reflectionRay, hitspot1, bounces, material.reflectance);
+                }
+
+                if (material.transmittance > 0)
+                {
+                    double r = n1 / n2;
+                    double d = 1.0 - pow(r, 2) * (1 - cosTheta * cosTheta); 
+                    
+                    Vector3 refractionDir(0,0,0);
+                    
+                    if (d >= 0)
+                        refractionDir = r * (normal * (-normal.dot(-toViewDir)) - toViewDir) - normal * sqrt(d);
+                    else
+                        refractionDir = 2.0f * (normal.dot(toViewDir)) * normal - toViewDir;
+                    
+                    RayCast refractionRay("refraction", -(hitspot1 + refractionDir * 0.0001), refractionDir);
+                    refractionColor = trace(scene, refractionRay, -(hitspot1 + refractionDir * 0.0001), bounces, material.refraction) * material.transmittance;
+                }
+                color = color + refractionColor + reflectanceColor;
+                color = color * (1 - schlick) + specularColor * schlick;
+            }
+            else
+            {
+                color = color + specularColor;
             }
         }
         
         color = color * lightIntensity; 
-        return RenderIntersection(distance, color + specularColor + reflectanceColor, true);
+        return RenderIntersection(distance, color, true);
+    }
+
+    Vector3 trace(Scene& scene, RayCast ray, Vector3 from, int bounces, double multiplier)
+    {
+        Vector3 returnColor(0,0,0);
+        for (auto object : scene.objects)
+        {
+            if (object.get() == this) continue;
+
+            RenderIntersection traceIntersection = object->intersectionTest(std::make_shared<RayCast>(ray), scene, from, true, --bounces);
+            if (traceIntersection.collides)
+            {
+                returnColor = returnColor + multiplier * traceIntersection.color;
+            }
+            else
+            {
+                returnColor = returnColor + multiplier * (scene.env.backgroundColor);
+            }
+        }
+
+        return returnColor;
     }
 
     float radius;

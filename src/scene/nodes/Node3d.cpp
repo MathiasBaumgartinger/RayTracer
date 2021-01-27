@@ -34,7 +34,7 @@ public:
     * Returns the closest intersection in the scene with the given ray. -1 if no collision could be found.
     * Any derived class that represents a surface should implement this.
     */
-    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Camera& cam, bool findColor=true, int bounces=1) 
+    virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Vector3 from, bool findColor=true, int bounces=1) 
     { return RenderIntersection(); }
 
     bool isVisible = false;
