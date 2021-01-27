@@ -3,9 +3,12 @@
 #include <fstream>
 #include <string>
 #include <math.h>
+#include <thread>
+#include <cmath>
 #include "../util/Math.cpp"
 #include "../scene/nodes/Camera.cpp"
 #include "../scene/nodes/RayCast.cpp"
+#include "../util/ProgressBar.cpp"
 
 class Renderer
 {
@@ -17,6 +20,8 @@ public:
     */
     void render()
     {
+        std::cout << "starting to write to: " << currentFileName << "\n\n";
+        ProgressBar progress{std::clog, 70u, "Working"};
         int maxColorValue = 255;
         preparePPM("P3", maxColorValue);
 
@@ -31,9 +36,10 @@ public:
                 double x = ((2 * (v - 0.5) - cam.resolution.y) / cam.resolution.y) * tanY;
 
                 RayCast ray("", cam.position, Vector3(x, y, -1));
-                Vector3 normalized = ray.castTo;
                 writeToPPM(ray, maxColorValue);
+
             }
+            progress.write(u / cam.resolution.x);
         }
 
         outfile.close();
@@ -96,3 +102,4 @@ private:
     Scene &scene;
     bool debug = false;
 };
+
