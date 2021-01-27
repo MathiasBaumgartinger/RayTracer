@@ -24,7 +24,6 @@ public:
 
     void import(std::string path)
     {
-        std::cout << path << std::endl;
         objFile.open(path);
         std::string line;
 
