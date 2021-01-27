@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Node3d.cpp"
+#include "../../util/Transform.cpp"
 #include "RayCast.cpp"
 #include "ParallelLight.cpp"
 #include "PointLight.cpp"
@@ -27,6 +28,8 @@ public:
     void initFromXMLNode(pugi::xml_node node) override 
     {
         pugi::xml_node posNode = node.child("position");
+        pugi::xml_node transformNode = node.child("transform");
+        
         pugi::xml_node materialNode;
         if(node.child("material_solid")) 
         {
@@ -39,7 +42,19 @@ public:
             material.initFromXMLNode(materialNode, Material::Textured);
         }
 
-        position = Util::vec3FromXML(posNode);
+        if (!transformNode.empty())
+        {
+            transform.initFromXMLNode(transformNode);
+            inverse.initFromXMLNode(transformNode, true);
+
+            std::cout << transform << std::endl << inverse << std::endl;
+            std::cout << transform * inverse << std::endl;
+
+            //position = transform.position();
+        }
+        else
+            position = Util::vec3FromXML(posNode);
+
         radius = node.attribute("radius").as_float();
     }
 
@@ -48,6 +63,9 @@ public:
     */
     virtual RenderIntersection intersectionTest(std::shared_ptr<RayCast> ray, Scene& scene, Vector3 from, bool findColor=true, int bounces=1) override
     {
+        ray->position = (inverse * ray->position).xyz();
+        ray->castTo = (inverse * ray->castTo).xyz();
+        
         Vector3 rayToCenter = position - ray->position;
 
         // Return no collision
@@ -63,16 +81,18 @@ public:
         double difference = sqrt(pow(radius, 2) - pow(distanceToCenterNormal, 2));
         double distance1 = rayToCenterNormal - difference;
         Vector3 hitspot1 = ray->castTo.normalized() * distance1 + ray->position;
+        Vector3 normal = (hitspot1 - position).normalized();
+
+        hitspot1 = (transform * hitspot1).xyz();
+        normal = (transform * normal).xyz();
 
         // For finding the shadow
         if (!findColor) return RenderIntersection(distance1, Vector3(0,0,0), true);
 
         Vector3 d = (hitspot1 - position).normalized();
-        double ut = 0.5 + atan2f(d.x, d.z) / 2*PI;
+        double ut = 0.5 + atan2(d.x, d.z) / (2 * PI);
         double vt = 0.5 - asin(d.y) / PI;
         Vector3 color = material.getColorAt(ut, vt);
-
-        Vector3 normal = (hitspot1 - position).normalized();
 
         return colorAtPoint(color, hitspot1, normal, distance1, scene, from, bounces);
     }
@@ -87,6 +107,7 @@ public:
         Vector3 reflectanceColor(0,0,0);
         Vector3 refractionColor(0,0,0);
         Vector3 toViewDir = (from - hitspot1).normalized();
+        Vector3 fromDir = -toViewDir;
 
         // Phong shading
         for (auto node : scene.lights)
@@ -133,12 +154,11 @@ public:
                 specular = pow(angle, material.phongExp);
             }
             specularColor = specularColor + light->color * specular * material.phong.z;
-
             lightIntensity = lightIntensity + light->color * diffuse * material.phong.y;
 
             if((material. transmittance > 0 || material.reflectance > 0) && bounces > 0)
             {
-                double cosTheta = -toViewDir.dot(normal);
+                double cosTheta = fromDir.dot(normal);
                 bool inside = cosTheta > 0;
                 
                 double n1;
@@ -169,20 +189,21 @@ public:
 
                 if (material.transmittance > 0)
                 {
+                    // Schlick approximation like in wikipedia
                     double r = n1 / n2;
-                    double d = 1.0 - pow(r, 2) * (1 - cosTheta * cosTheta); 
+                    double d = 1.0 - pow(r, 2) * (1.0 - pow(cosTheta, 2)); 
                     
                     Vector3 refractionDir(0,0,0);
                     
                     if (d >= 0)
-                        refractionDir = r * (normal * (-normal.dot(-toViewDir)) - toViewDir) - normal * sqrt(d);
+                        refractionDir = r* (normal * cosTheta + fromDir) - normal * sqrt(d);//r * (normal * (-normal.dot(fromDir)) + fromDir) - normal * sqrt(d);
                     else
-                        refractionDir = 2.0f * (normal.dot(toViewDir)) * normal - toViewDir;
+                        refractionDir = 2.0f * (normal.dot(-fromDir)) * normal - fromDir;
                     
                     RayCast refractionRay("refraction", -(hitspot1 + refractionDir * 0.0001), refractionDir);
                     refractionColor = trace(scene, refractionRay, -(hitspot1 + refractionDir * 0.0001), bounces, material.refraction);
                 }
-                color = color + refractionColor + reflectanceColor;
+                color = color + refractionColor * material.transmittance + reflectanceColor; 
                 color = color * (1 - schlick) + specularColor * schlick;
             }
             else
@@ -218,4 +239,6 @@ public:
 
     float radius;
     Material material;
+    Transform transform;
+    Transform inverse;
 };
