@@ -166,7 +166,7 @@ public:
                 double vt = (1-ux-vy) * vtBuffer[triangleIndex].y + ux * vtBuffer[triangleIndex+1].y + vy * vtBuffer[triangleIndex+2].y;
                 Vector3 color = material.getColorAt(ut, vt);
                 Vector3 normal = ((vnBuffer[triangleIndex] + vnBuffer[triangleIndex+1] + vnBuffer[triangleIndex+2]) / 3).normalized();
-                return colorAtPoint(color, hitspot, normal, minDist, scene, from);
+                return colorAtPoint(color, hitspot, normal, minDist, scene, from, bounces);
             }
             return RenderIntersection(minDist, Vector3(0,0,0), true);
         }
@@ -177,10 +177,12 @@ public:
     /*
     * Get the color at a specified point on the mesh.
     */
-    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, Vector3 normal, double distance, Scene& scene, Vector3 from, bool reflect=true)
+    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, Vector3 normal, double distance, Scene& scene, Vector3 from, int bounces)
     {
         Vector3 lightIntensity = scene.env.ambientLight.color * material.phong.x;
         Vector3 specularColor(0,0,0);
+        Vector3 reflectanceColor(0,0,0);
+        Vector3 refractionColor(0,0,0);
         Vector3 toViewDir = (from - hitspot1).normalized();
 
         // Phong shading
@@ -201,7 +203,7 @@ public:
             }
 
             // Check for shadow
-            RayCast shadowRay("", hitspot1 + toLightDir * 0.001, toLightDir);
+            RayCast shadowRay("shadow", hitspot1 + toLightDir * 0.001, toLightDir);
             double minDistance = DBL_MAX;
             for (auto object : scene.objects)
             {
@@ -216,24 +218,98 @@ public:
             {
                 continue;
             }
-            
 
             double diffuse = std::max((normal.dot(toLightDir)), 0.0);
             double specular = 0.0;
 
+            Vector3 reflected = 2.0f * (normal.dot(toLightDir)) * normal - toLightDir;
             if(diffuse > 0.0) 
             {
-                Vector3 reflected = 2.0f * (normal.dot(toLightDir)) * normal - toLightDir;
                 double angle = std::max((reflected.dot(toViewDir)), 0.0);
                 specular = pow(angle, material.phongExp);
             }
             specularColor = specularColor + light->color * specular * material.phong.z;
 
             lightIntensity = lightIntensity + light->color * diffuse * material.phong.y;
+
+            if((material. transmittance > 0 || material.reflectance > 0) && bounces > 0)
+            {
+                double cosTheta = -toViewDir.dot(normal);
+                bool inside = cosTheta > 0;
+                
+                double n1;
+                double n2;
+                if (inside)
+                {
+                    n1 = material.refraction;
+                    n2 = 1;
+
+                    normal = -normal;
+                }
+                else 
+                {
+                    n2 = material.refraction;
+                    n1 = 1;
+
+                    cosTheta = -cosTheta;
+                }
+                double schlick = Util::schlickApprox(n1, n2, cosTheta);
+
+                if  (!inside && material.reflectance > 0) 
+                {
+                    Vector3 reflectionDir = 2.0f * (normal.dot(toViewDir)) * normal - toViewDir;
+                    RayCast reflectionRay("reflection", hitspot1, reflectionDir);
+
+                    reflectanceColor = reflectanceColor +  trace(scene, reflectionRay, hitspot1, bounces, material.reflectance);
+                }
+
+                if (material.transmittance > 0)
+                {
+                    double r = n1 / n2;
+                    double d = 1.0 - pow(r, 2) * (1 - cosTheta * cosTheta); 
+                    
+                    Vector3 refractionDir(0,0,0);
+                    
+                    if (d >= 0)
+                        refractionDir = r * (normal * (-normal.dot(-toViewDir)) - toViewDir) - normal * sqrt(d);
+                    else
+                        refractionDir = 2.0f * (normal.dot(toViewDir)) * normal - toViewDir;
+                    
+                    RayCast refractionRay("refraction", -(hitspot1 + refractionDir * 0.0001), refractionDir);
+                    refractionColor = trace(scene, refractionRay, -(hitspot1 + refractionDir * 0.0001), bounces, material.refraction);
+                }
+                color = color + refractionColor + reflectanceColor;
+                color = color * (1 - schlick) + specularColor * schlick;
+            }
+            else
+            {
+                color = color + specularColor;
+            }
         }
         
         color = color * lightIntensity; 
-        return RenderIntersection(distance, color + specularColor, true);
+        return RenderIntersection(distance, color, true);
+    }
+
+    Vector3 trace(Scene& scene, RayCast ray, Vector3 from, int bounces, double multiplier)
+    {
+        Vector3 returnColor(0,0,0);
+        for (auto object : scene.objects)
+        {
+            if (object.get() == this) continue;
+
+            RenderIntersection traceIntersection = object->intersectionTest(std::make_shared<RayCast>(ray), scene, from, true, --bounces);
+            if (traceIntersection.collides)
+            {
+                returnColor = returnColor + multiplier * traceIntersection.color;
+            }
+            else
+            {
+                returnColor = returnColor + multiplier * (scene.env.backgroundColor) - Vector3(0.05,0.05,0.05);
+            }
+        }
+
+        return returnColor;
     }
 
     std::vector<Vector3> vBuffer;

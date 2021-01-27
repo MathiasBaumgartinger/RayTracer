@@ -72,17 +72,16 @@ public:
         double vt = 0.5 - asin(d.y) / PI;
         Vector3 color = material.getColorAt(ut, vt);
 
-        return colorAtPoint(color, hitspot1, distance1, scene, from, bounces);
+        Vector3 normal = (hitspot1 - position).normalized();
+
+        return colorAtPoint(color, hitspot1, normal, distance1, scene, from, bounces);
     }
 
     /*
     * Get the color at a specified point on the sphere.
     */
-    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, double distance, Scene& scene, Vector3 from, int bounces)
+    RenderIntersection colorAtPoint(Vector3 color, Vector3 hitspot1, Vector3 normal, double distance, Scene& scene, Vector3 from, int bounces)
     {
-        //std::cout << "Starting to find color ...\n";
-        Vector3 normal = (hitspot1 - position).normalized();
-
         Vector3 lightIntensity = scene.env.ambientLight.color * material.phong.x;
         Vector3 specularColor(0,0,0);
         Vector3 reflectanceColor(0,0,0);
@@ -111,6 +110,8 @@ public:
             double minDistance = DBL_MAX;
             for (auto object : scene.objects)
             {
+                if (object.get() == this) continue;
+
                 double intersectionDistance = object->intersectionTest(std::make_shared<RayCast>(shadowRay), scene, from, false).distance;
                 if (intersectionDistance >= 0 && intersectionDistance < minDistance)
                 {
@@ -119,7 +120,7 @@ public:
             }
             if (minDistance < abs((light->position - hitspot1).len())) 
             {
-                return RenderIntersection(minDistance, color * lightIntensity, true);
+                continue;
             }
 
             double diffuse = std::max((normal.dot(toLightDir)), 0.0);
@@ -179,7 +180,7 @@ public:
                         refractionDir = 2.0f * (normal.dot(toViewDir)) * normal - toViewDir;
                     
                     RayCast refractionRay("refraction", -(hitspot1 + refractionDir * 0.0001), refractionDir);
-                    refractionColor = trace(scene, refractionRay, -(hitspot1 + refractionDir * 0.0001), bounces, material.refraction) * material.transmittance;
+                    refractionColor = trace(scene, refractionRay, -(hitspot1 + refractionDir * 0.0001), bounces, material.refraction);
                 }
                 color = color + refractionColor + reflectanceColor;
                 color = color * (1 - schlick) + specularColor * schlick;
@@ -208,7 +209,7 @@ public:
             }
             else
             {
-                returnColor = returnColor + multiplier * (scene.env.backgroundColor);
+                returnColor = returnColor + multiplier * (scene.env.backgroundColor) - Vector3(0.05,0.05,0.05);
             }
         }
 
