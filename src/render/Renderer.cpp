@@ -20,7 +20,8 @@ public:
     */
     void render()
     {
-        std::cout << "starting to write to: " << currentFileName << "\n\n";
+        std::cout << cam.position << std::endl;
+        std::cout << cam.lookAtTransform << std::endl;
         ProgressBar progress{std::clog, 70u, "Working"};
         int maxColorValue = 255;
         preparePPM("P3", maxColorValue);
@@ -35,9 +36,13 @@ public:
             {
                 double x = ((2 * (v - 0.5) - cam.resolution.y) / cam.resolution.y) * tanY;
 
-                RayCast ray("", cam.position, Vector3(x, y, -1));
+                Vector3 onPlane(x, y, -1);
+                
+                Vector4 onPlaneTransformed = cam.lookAtTransform * Vector4(onPlane);
+                Vector3 direction = (onPlaneTransformed.xyz() - cam.position).normalized();
+                    
+                RayCast ray("", cam.position, direction);
                 writeToPPM(ray, maxColorValue);
-
             }
             progress.write(u / cam.resolution.x);
         }

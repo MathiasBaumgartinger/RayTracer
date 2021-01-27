@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <iostream>
+#include "Vector3.cpp"
 
 /*
 * Vector4 class for doing calculations.
@@ -9,11 +10,17 @@
 class Vector4 {
 public:
     Vector4() : x(0), y(0), z(0), w(0) {}
+    Vector4(Vector3 other) : x(other.x), y(other.y), z(other.z), w(1) {}
     Vector4(double x, double y, double z, double w) : x(x), y(y), z(z), w(w) {}
 
     Vector4(const Vector4& other)  : x(other.x), y(other.y), z(other.z), w(other.w) {}
 
     double x, y, z, w;
+
+    Vector3 xyz()
+    {
+        return Vector3(x,y,z);
+    }
 
     double len() 
     {

@@ -32,10 +32,10 @@ public:
     Vector4 Multiply(const Vector4& other) const 
     {
         return Vector4(
-            (matrix[0] * other.x).sumComponents(), 
-            (matrix[1] * other.y).sumComponents(),
-            (matrix[2] * other.z).sumComponents(),
-            (matrix[3] * other.w).sumComponents()
+            (matrix[0].x * other.x + matrix[0].y * other.y + matrix[0].z * other.z + matrix[0].w * other.w), 
+            (matrix[1].x * other.x + matrix[1].y * other.y + matrix[1].z * other.z + matrix[1].w * other.w),
+            (matrix[2].x * other.x + matrix[2].y * other.y + matrix[2].z * other.z + matrix[2].w * other.w),
+            (matrix[3].x * other.x + matrix[3].y * other.y + matrix[3].z * other.z + matrix[3].w * other.w)
         );
     }
 
@@ -53,12 +53,12 @@ namespace mat4
     {
         Vector3 zaxis = (at - eye).normalized();
         Vector3 xaxis = (zaxis.cross(up)).normalized();
-        Vector3 yaxis = xaxis.cross(yaxis);
+        Vector3 yaxis = xaxis.cross(zaxis);
 
         zaxis = -zaxis;
 
         Transform viewMatrix(
-            Vector4(xaxis.x, yaxis.x, zaxis.z, eye.x),
+            Vector4(xaxis.x, yaxis.x, zaxis.x, eye.x),
             Vector4(xaxis.y, yaxis.y, zaxis.y, eye.y),
             Vector4(xaxis.z, yaxis.z, zaxis.z, eye.z),
             Vector4(0,0,0,1)
