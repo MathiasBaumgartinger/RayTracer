@@ -2,6 +2,7 @@
 
 #include "Node3d.cpp"
 #include "../../util/Math.cpp"
+#include "../../util/Transform.cpp"
 
 /*
 * Camera node with lookAt, up, field of view (x, y) and resolution. Derived from Node3d.
@@ -16,6 +17,7 @@ public:
         resolution(resolution), maxBounces(maxBounces)  
     {
         fovy = (resolution.y / resolution.x) * fov;
+        lookAtTransform = mat4::lookAt(position, lookAt, up);
     }
 
     Camera() : Node3d("Camera", Vector3(0,0,0)), lookAt(Vector3(0, 0, -1)), up(Vector3(0, 1, 0)), 
@@ -42,6 +44,8 @@ public:
         fov = fovNode.attribute("angle").as_float();
         resolution = Util::vec2FromXML(resNode, "horizontal", "vertical");
         maxBounces = maxBNode.attribute("n").as_int();
+
+        lookAtTransform = mat4::lookAt(position, lookAt, up);
     }
 
     Vector3 lookAt;
@@ -50,4 +54,5 @@ public:
     float fovy;
     Vector2 resolution;
     int maxBounces;
+    Transform lookAtTransform;
 };
